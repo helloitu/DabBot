@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 from sqlalchemy.orm import Session
 
-from credentials import ENGINE, TOKEN, CELULAR, IPOD
+from credentials import ENGINE, TOKEN, CELULAR, IPOD, Ipod_Path
 from database import Backup
 
 
@@ -27,6 +27,7 @@ def start(bot, update):
 
 def music(bot, update):
     title, video_url = search(update.message.text)
+    bot.sendMessage(update.message.chat_id, text="Pedido Recebido... Baixando:" + title)
     session = Session(bind=ENGINE)
     session.add(Backup(title=title, video_url=video_url))
     session.commit()
@@ -36,6 +37,7 @@ def music(bot, update):
         print("Telegram sender Disabled / Envio para o telegram desativado, talvez seja algo nas configuracoes")
     else:
         print("Telegram sender Enabled / Enviando para o telegram")
+        bot.sendMessage(update.message.chat_id, text="-----------------------\n Convertendo e Enviando ....")
         bot.sendAudio(update.message.chat_id,
          audio=open(title.replace(' ','') + '.mp3', 'rb'),
           title=title)
@@ -49,8 +51,9 @@ def ipod():
         print("----------------------------------------------------")
         print("./end")
     else:
+        comando = "gnupod_addsong -m "+ Ipod_Path +" *.mp3"
         print("Uploading on ipod / Fazendo upload para o ipod")
-        os.system("gnupod_addsong -m /media/vaniture/IPOD\ DE\ GUI/ *.mp3")
+        os.system(comando)
         print ("Upload Concluido!")
         print("----------------------------------------------------")
         print("./end")
@@ -78,8 +81,18 @@ def download(title, video_url):
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         ydl.download([video_url])
 
+def ipod_on(bot, update):
+    if(IPOD == 0):
+      IPOD = 1
+    else:
+      IPOD = 0
+    bot.sendMessage(update.message.chat_id, text="--------------\nIpod Upload Ativado")
 
 dp.add_handler(CommandHandler("start", start))
+#dp.add_handler(CommandHandler("ipod_on", ipod_on))
+#dp.add_handler(CommandHandler("ipod_off", ipod_off))
+#dp.add_handler(CommandHandler("tele_on", tele_on))
+#dp.add_handler(CommandHandler("tele_off", tele_off))
 dp.add_handler(MessageHandler([Filters.text], music))
 
 u.start_polling()
